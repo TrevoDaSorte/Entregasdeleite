@@ -126,6 +126,16 @@ Cadastrar
 ⬇ Download Banco
 </button>
 
+<button onclick="document.getElementById('restaurarInput').click()" style="background:#7c3aed;">
+📂 Restaurar Backup
+</button>
+
+<input type="file"
+id="restaurarInput"
+accept=".json"
+style="display:none"
+onchange="restaurarBackup(event)">
+
 <div id="listaClientes"></div>
 
 </div>
@@ -595,7 +605,7 @@ function atualizarTabela(){
 // SENHA ADMIN
 // ======================
 
-const SENHA_ADMIN = "1234@";
+const SENHA_ADMIN = "1234";
 
 function pedirSenha(){
 
@@ -632,6 +642,57 @@ function baixarBanco(){
     link.download = "banco.json";
 
     link.click();
+}
+
+// ======================
+// RESTAURAR BACKUP
+// ======================
+
+async function restaurarBackup(event){
+
+    if(!pedirSenha()){
+        event.target.value = "";
+        return;
+    }
+
+    let arquivo = event.target.files[0];
+
+    if(!arquivo){
+        return;
+    }
+
+    let leitor = new FileReader();
+
+    leitor.onload = async function(e){
+
+        try{
+
+            let dados = JSON.parse(e.target.result);
+
+            if(!dados.clientes || !dados.entregas){
+                alert("Backup inválido!");
+                return;
+            }
+
+            banco = dados;
+
+            await salvarBanco();
+
+            atualizarClientes();
+            atualizarTabela();
+
+            alert("Backup restaurado com sucesso!");
+
+        }catch(erro){
+
+            alert("Erro ao restaurar backup!");
+
+        }
+    }
+
+    leitor.readAsText(arquivo);
+
+    event.target.value = "";
 }
 
 // ======================
