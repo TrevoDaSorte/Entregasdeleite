@@ -122,6 +122,10 @@ Cadastrar
 🗑 Limpar Banco
 </button>
 
+<button onclick="baixarBanco()" style="background:#2563eb;">
+⬇ Download Banco
+</button>
+
 <div id="listaClientes"></div>
 
 </div>
@@ -254,6 +258,10 @@ async function salvarBanco(){
 
 async function cadastrarCliente(){
 
+    if(!pedirSenha()){
+        return;
+    }
+
     let nome = document.getElementById("novoCliente").value.trim();
 
     if(nome == ""){
@@ -279,6 +287,10 @@ async function cadastrarCliente(){
 
 async function excluirCliente(id){
 
+    if(!pedirSenha()){
+        return;
+    }
+
     let confirmar = confirm("Excluir este cliente?");
 
     if(!confirmar){
@@ -300,6 +312,10 @@ async function excluirCliente(id){
 // ======================
 
 async function editarCliente(id){
+
+    if(!pedirSenha()){
+        return;
+    }
 
     let cliente = banco.clientes.find(c => c.id == id);
 
@@ -330,6 +346,10 @@ async function editarCliente(id){
 // ======================
 
 async function limparBanco(){
+
+    if(!pedirSenha()){
+        return;
+    }
 
     let confirmar = confirm("Deseja apagar TODOS os clientes e entregas?");
 
@@ -400,6 +420,10 @@ function atualizarClientes(){
 
 async function salvarEntrega(){
 
+    if(!pedirSenha()){
+        return;
+    }
+
     let clienteId = document.getElementById("clienteSelect").value;
 
     let litros = document.getElementById("litros").value;
@@ -441,6 +465,10 @@ async function salvarEntrega(){
 
 async function editarEntrega(id){
 
+    if(!pedirSenha()){
+        return;
+    }
+
     let entrega = banco.entregas.find(e => e.id == id);
 
     let novoLitro = prompt("Editar litros:", entrega.litros);
@@ -461,6 +489,10 @@ async function editarEntrega(id){
 // ======================
 
 async function excluirEntrega(id){
+
+    if(!pedirSenha()){
+        return;
+    }
 
     let confirmar = confirm("Excluir esta entrega?");
 
@@ -557,6 +589,49 @@ function atualizarTabela(){
 
     document.getElementById("totalSemana").innerHTML =
     "📦 Total da Semana: " + totalSemana + "L";
+}
+
+// ======================
+// SENHA ADMIN
+// ======================
+
+const SENHA_ADMIN = "1234@";
+
+function pedirSenha(){
+
+    let senha = prompt("Digite a senha de administrador:");
+
+    if(senha !== SENHA_ADMIN){
+        alert("Senha incorreta!");
+        return false;
+    }
+
+    return true;
+}
+
+// ======================
+// DOWNLOAD DO BANCO
+// ======================
+
+function baixarBanco(){
+
+    if(!pedirSenha()){
+        return;
+    }
+
+    let dados = JSON.stringify(banco, null, 2);
+
+    let blob = new Blob([dados], {
+        type:"application/json"
+    });
+
+    let link = document.createElement("a");
+
+    link.href = URL.createObjectURL(blob);
+
+    link.download = "banco.json";
+
+    link.click();
 }
 
 // ======================
