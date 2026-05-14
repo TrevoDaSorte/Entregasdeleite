@@ -208,9 +208,19 @@ async function carregarBanco(){
 
     try{
 
-        let res = await fetch("/dados");
+        let dados = localStorage.getItem("banco_leite");
 
-        banco = await res.json();
+        if(dados){
+
+            banco = JSON.parse(dados);
+
+        }else{
+
+            banco = {
+                clientes: [],
+                entregas: []
+            };
+        }
 
         if(!banco.clientes){
             banco.clientes = [];
@@ -234,7 +244,6 @@ async function carregarBanco(){
 
     }
 }
-
 // ======================
 // SALVAR BANCO
 // ======================
@@ -243,17 +252,10 @@ async function salvarBanco(){
 
     try{
 
-        await fetch("/salvar",{
-
-            method:"POST",
-
-            headers:{
-                "Content-Type":"application/json"
-            },
-
-            body:JSON.stringify(banco)
-
-        });
+        localStorage.setItem(
+            "banco_leite",
+            JSON.stringify(banco)
+        );
 
     }catch(erro){
 
