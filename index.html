@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🥛 Entregas de Leite</title>
+
+<style>
+
+body{
+    font-family:Arial;
+    background:#1e293b;
+    color:white;
+    text-align:center;
+    margin:0;
+}
+
+.topo{
+    background:#0f172a;
+    padding:20px;
+}
+
+.topo img{
+    width:180px;
+    border-radius:20px;
+    box-shadow:0 0 20px rgba(255,255,255,0.2);
+}
+
+h1{
+    margin-top:10px;
+}
+
+.box{
+    background:#334155;
+    padding:20px;
+    margin:20px auto;
+    width:90%;
+    max-width:900px;
+    border-radius:15px;
+}
+
+input,select,button{
+    padding:10px;
+    margin:5px;
+    border:none;
+    border-radius:8px;
+}
+
+button{
+    background:#22c55e;
+    color:white;
+    cursor:pointer;
+    font-weight:bold;
+}
+
+button:hover{
+    opacity:0.9;
+}
+
+.excluir{
+    background:red;
+}
+
+.editar{
+    background:#f59e0b;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:20px;
+}
+
+th{
+    background:#22c55e;
+}
+
+th,td{
+    padding:12px;
+    border-bottom:1px solid #475569;
+}
+
+#totalDia{
+    margin-top:20px;
+    font-size:24px;
+    font-weight:bold;
+    color:#22c55e;
+}
+
+#totalSemana{
+    margin-top:10px;
+    font-size:24px;
+    font-weight:bold;
+    color:#4ade80;
+}
+
+</style>
+</head>
+
+
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+
+
+<body>
+
+<div class="topo">
+
+<img src="https://images.unsplash.com/photo-1500595046743-cd271d694d30?q=80&w=1200&auto=format&fit=crop" alt="Vaca leiteira">
+
+<img src="https://upload.wikimedia.org/wikipedia/commons/0/0c/Cow_female_black_white.jpg" alt="Vaca leiteira">
+
+<h1>🥛 Entregas de Leite</h1>
+
+</div>
+
+<div class="box">
+
+<h2>Cadastrar Cliente</h2>
+
+<input type="text" id="novoCliente" placeholder="Nome do cliente">
+
+<button onclick="cadastrarCliente()">
+Cadastrar
+</button>
+
+<button onclick="limparBanco()" style="background:red;">
+🗑 Limpar Banco
+</button>
+
+<button onclick="baixarBanco()" style="background:#2563eb;">
+⬇ Download Banco
+</button>
+
+<button onclick="document.getElementById('restaurarInput').click()" style="background:#7c3aed;">
+📂 Restaurar Backup
+</button>
+
+<input type="file"
+id="restaurarInput"
+accept=".json"
+style="display:none"
+onchange="restaurarBackup(event)">
+
+<div id="listaClientes"></div>
+
+</div>
+
+<div class="box">
+
+<h2>Registrar Entrega</h2>
+
+<select id="clienteSelect"></select>
+
+<input type="number" id="litros" placeholder="Litros">
+
+<select id="dia">
+<option>Segunda</option>
+<option>Terça</option>
+<option>Quarta</option>
+<option>Quinta</option>
+<option>Sexta</option>
+<option>Sábado</option>
+<option>Domingo</option>
+</select>
+
+<button onclick="salvarEntrega()">
+Salvar
+</button>
+
+</div>
+
+<div class="box">
+
+<h2>Entregas</h2>
+
+<table>
+<thead>
+<tr>
+<th>Cliente</th>
+<th>Litros</th>
+<th>Dia</th>
+<th>Data</th>
+<th>Ações</th>
+</tr>
+</thead>
+
+<tbody id="tabela"></tbody>
+
+</table>
+
+<div id="totalDia">
+🥛 Total do Dia: 0L
+</div>
+
+<div id="totalSemana">
+📦 Total da Semana: 0L
+</div>
+
+</div>
+
+<script>
+
+
+/* FIREBASE */
+
+const firebaseConfig = {
+
+apiKey:
+"AIzaSyDnsa34KhQ3wOlt8QoBeSMCbjpnwC-d3w0",
+
+authDomain:
+"trevodasorte-23ef1.firebaseapp.com",
+
+projectId:
+"trevodasorte-23ef1"
+
+};
+
+firebase.initializeApp(
+firebaseConfig
+);
+
+const db =
+firebase.firestore();
+
+
+
+
+
+let banco = {
+    clientes: [],
+    entregas: []
+};
+
+// ======================
+// CARREGAR BANCO
+// ======================
+
+async function carregarBanco(){
+
+try{
+
+const doc = await db
+.collection("leite")
+.doc("entregas")
+.get();
+
+if(doc.exists){
+
+banco = doc.data().dados;
+
+}else{
+
+banco = {
+
+clientes: [],
+
+entregas: []
+
+};
+
+await salvarBanco();
+
+}
+
+if(!banco.clientes){
+
+banco.clientes = [];
+
+}
+
+if(!banco.entregas){
+
+banco.entregas = [];
+
+}
+
+atualizarClientes();
+
+atualizarTabela();
+
+}catch(erro){
+
+console.log(
+"Erro ao carregar banco",
+erro
+);
+
+banco = {
+
+clientes: [],
+
+entregas: []
+
+};
+
+}
+
+}
+// ======================
+// SALVAR BANCO
+// ======================
+
+async function salvarBanco(){
+
+try{
+
+await db
+.collection("leite")
+.doc("entregas")
+.set({
+
+dados:banco
+
+});
+
+}catch(erro){
+
+console.log(
+"Erro ao salvar banco",
+erro
+);
+
+}
+
+}
+
+// ======================
+// CADASTRAR CLIENTE
+// ======================
+
+async function cadastrarCliente(){
+
+    if(!pedirSenha()){
+        return;
+    }
+
+    let nome = document.getElementById("novoCliente").value.trim();
+
+    if(nome == ""){
+        alert("Digite um nome");
+        return;
+    }
+
+    banco.clientes.push({
+        id:"cliente_" + Date.now(),
+        nome:nome
+    });
+
+    await salvarBanco();
+
+    atualizarClientes();
+
+    document.getElementById("novoCliente").value="";
+}
+
+// ======================
+// EXCLUIR CLIENTE
+// ======================
+
+async function excluirCliente(id){
+
+    if(!pedirSenha()){
+        return;
+    }
+
+    let confirmar = confirm("Excluir este cliente?");
+
+    if(!confirmar){
+        return;
+    }
+
+    banco.clientes = banco.clientes.filter(c => c.id != id);
+
+    banco.entregas = banco.entregas.filter(e => e.clienteId != id);
+
+    await salvarBanco();
+
+    atualizarClientes();
+    atualizarTabela();
+}
+
+// ======================
+// EDITAR CLIENTE
+// ======================
+
+async function editarCliente(id){
+
+    if(!pedirSenha()){
+        return;
+    }
+
+    let cliente = banco.clientes.find(c => c.id == id);
+
+    let novoNome = prompt("Editar nome do cliente:", cliente.nome);
+
+    if(!novoNome){
+        return;
+    }
+
+    cliente.nome = novoNome;
+
+    banco.entregas.forEach(entrega => {
+
+        if(entrega.clienteId == id){
+            entrega.cliente = novoNome;
+        }
+
+    });
+
+    await salvarBanco();
+
+    atualizarClientes();
+    atualizarTabela();
+}
+
+// ======================
+// LIMPAR BANCO
+// ======================
+
+async function limparBanco(){
+
+    if(!pedirSenha()){
+        return;
+    }
+
+    let confirmar = confirm("Deseja apagar TODOS os clientes e entregas?");
+
+    if(!confirmar){
+        return;
+    }
+
+    banco = {
+        clientes: [],
+        entregas: []
+    };
+
+    await salvarBanco();
+
+    atualizarClientes();
+    atualizarTabela();
+
+    alert("Banco limpo com sucesso!");
+}
+
+// ======================
+// ATUALIZAR CLIENTES
+// ======================
+
+function atualizarClientes(){
+
+    let lista = document.getElementById("listaClientes");
+
+    let select = document.getElementById("clienteSelect");
+
+    lista.innerHTML = "";
+    select.innerHTML = "";
+
+    banco.clientes.forEach(cliente => {
+
+        lista.innerHTML += `
+
+        <p>
+
+        ${cliente.nome}
+
+        <button class="editar"
+        onclick="editarCliente('${cliente.id}')">
+        Editar
+        </button>
+
+        <button class="excluir"
+        onclick="excluirCliente('${cliente.id}')">
+        Excluir
+        </button>
+
+        </p>
+
+        `;
+
+        select.innerHTML += `
+        <option value="${cliente.id}">
+        ${cliente.nome}
+        </option>
+        `;
+
+    });
+}
+
+// ======================
+// SALVAR ENTREGA
+// ======================
+
+async function salvarEntrega(){
+
+    if(!pedirSenha()){
+        return;
+    }
+
+    let clienteId = document.getElementById("clienteSelect").value;
+
+    let litros = document.getElementById("litros").value;
+
+    let dia = document.getElementById("dia").value;
+
+    if(clienteId == "" || litros == ""){
+        alert("Preencha tudo");
+        return;
+    }
+
+    let cliente = banco.clientes.find(c => c.id == clienteId);
+
+    let dataAtual = new Date();
+
+    let dataFormatada = dataAtual.toLocaleDateString("pt-BR");
+
+    banco.entregas.push({
+
+        id:"entrega_" + Date.now(),
+        clienteId:cliente.id,
+        cliente:cliente.nome,
+        litros:Number(litros),
+        dia:dia,
+        data:dataFormatada
+
+    });
+
+    await salvarBanco();
+
+    atualizarTabela();
+
+    document.getElementById("litros").value = "";
+}
+
+// ======================
+// EDITAR ENTREGA
+// ======================
+
+async function editarEntrega(id){
+
+    if(!pedirSenha()){
+        return;
+    }
+
+    let entrega = banco.entregas.find(e => e.id == id);
+
+    let novoLitro = prompt("Editar litros:", entrega.litros);
+
+    if(novoLitro == null || novoLitro == ""){
+        return;
+    }
+
+    entrega.litros = Number(novoLitro);
+
+    await salvarBanco();
+
+    atualizarTabela();
+}
+
+// ======================
+// EXCLUIR ENTREGA
+// ======================
+
+async function excluirEntrega(id){
+
+    if(!pedirSenha()){
+        return;
+    }
+
+    let confirmar = confirm("Excluir esta entrega?");
+
+    if(!confirmar){
+        return;
+    }
+
+    banco.entregas = banco.entregas.filter(entrega => entrega.id !== id);
+
+    await salvarBanco();
+
+    atualizarTabela();
+
+    alert("Entrega excluída com sucesso!");
+}
+
+// ======================
+// TABELA + TOTAIS
+// ======================
+
+function atualizarTabela(){
+
+    let tabela = document.getElementById("tabela");
+
+    tabela.innerHTML = "";
+
+    let totalSemana = 0;
+    let totalDia = 0;
+
+    let hoje = new Date().toLocaleDateString("pt-BR");
+
+    let entregasPorData = {};
+
+    banco.entregas.forEach(item => {
+
+        let litros = Number(item.litros) || 0;
+
+        totalSemana += litros;
+
+        if(item.data === hoje){
+            totalDia += litros;
+        }
+
+        if(!entregasPorData[item.data]){
+            entregasPorData[item.data] = [];
+        }
+
+        entregasPorData[item.data].push(item);
+    });
+
+    for(let data in entregasPorData){
+
+        tabela.innerHTML += `
+
+        <tr style="background:#0f172a;">
+            <td colspan="5">
+            📅 <b>${data}</b>
+            </td>
+        </tr>
+
+        `;
+
+        entregasPorData[data].forEach(item => {
+
+            tabela.innerHTML += `
+
+            <tr>
+                <td>${item.cliente}</td>
+                <td>${item.litros}L</td>
+                <td>${item.dia}</td>
+                <td>${item.data}</td>
+                <td>
+
+                <button class="editar"
+                onclick="editarEntrega('${item.id}')">
+                Editar
+                </button>
+
+                <button class="excluir"
+                onclick="excluirEntrega('${item.id}')">
+                Excluir
+                </button>
+
+                </td>
+            </tr>
+
+            `;
+
+        });
+    }
+
+    document.getElementById("totalDia").innerHTML =
+    "🥛 Total do Dia: " + totalDia + "L";
+
+    document.getElementById("totalSemana").innerHTML =
+    "📦 Total da Semana: " + totalSemana + "L";
+}
+
+// ======================
+// SENHA ADMIN
+// ======================
+
+const SENHA_ADMIN = "1234";
+
+function pedirSenha(){
+
+    let senha = prompt("Digite a senha de administrador:");
+
+    if(senha !== SENHA_ADMIN){
+        alert("Senha incorreta!");
+        return false;
+    }
+
+    return true;
+}
+
+// ======================
+// DOWNLOAD DO BANCO
+// ======================
+
+function baixarBanco(){
+
+    if(!pedirSenha()){
+        return;
+    }
+
+    let dados = JSON.stringify(banco, null, 2);
+
+    let blob = new Blob([dados], {
+        type:"application/json"
+    });
+
+    let link = document.createElement("a");
+
+    link.href = URL.createObjectURL(blob);
+
+    link.download = "banco.json";
+
+    link.click();
+}
+
+// ======================
+// RESTAURAR BACKUP
+// ======================
+
+async function restaurarBackup(event){
+
+    if(!pedirSenha()){
+        event.target.value = "";
+        return;
+    }
+
+    let arquivo = event.target.files[0];
+
+    if(!arquivo){
+        return;
+    }
+
+    let leitor = new FileReader();
+
+    leitor.onload = async function(e){
+
+        try{
+
+            let dados = JSON.parse(e.target.result);
+
+            if(!dados.clientes || !dados.entregas){
+                alert("Backup inválido!");
+                return;
+            }
+
+            banco = dados;
+
+            await salvarBanco();
+
+            atualizarClientes();
+            atualizarTabela();
+
+            alert("Backup restaurado com sucesso!");
+
+        }catch(erro){
+
+            alert("Erro ao restaurar backup!");
+
+        }
+    }
+
+    leitor.readAsText(arquivo);
+
+    event.target.value = "";
+}
+
+// ======================
+// INICIAR
+// ======================
+
+carregarBanco();
+
+</script>
+
+</body>
+</html>
