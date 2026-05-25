@@ -264,8 +264,8 @@ prompt("Editar valor:", entrega.valor || 0);
 if(novoValor == null) return;
 
 let novoHaver =
-prompt("Digite 💲 ou ❕",
-entrega.haver || "❕");
+prompt("Digite 💲 ou 📄",
+entrega.haver || "📄");
 
 if(novoHaver == null) return;
 
@@ -297,7 +297,7 @@ banco.entregas.find(e => e.id == id);
 
 if(entrega.haver == "💲"){
 
-entrega.haver = "❕";
+entrega.haver = "📄";
 
 }else{
 
@@ -482,7 +482,7 @@ document.getElementById("totalRecebido").innerHTML =
 
 document.getElementById("totalPendente").innerHTML =
 
-"❕ Total Pendente: R$ "
+"📄 Total Pendente: R$ "
 + totalPendente;
 
 }
