@@ -260,10 +260,9 @@ let valorTotal = Number(litros) * banco.valorLitro;
 
 let pagamento = valorPago ? Number(valorPago) : 0;
 
-let dataAtual = new Date();
-
-let dataFormatada =
-dataAtual.toLocaleDateString("pt-BR");
+let dataEscolhida = document.getElementById("dataEntrega")?.value;
+let dataAtual = dataEscolhida ? new Date(dataEscolhida + "T12:00:00") : new Date();
+let dataFormatada = dataAtual.toLocaleDateString("pt-BR");
 
 banco.entregas.push({
 
@@ -320,13 +319,14 @@ prompt("Editar valor pago:", entrega.valorPago || 0);
 
 if(novoValorPago == null) return;
 
-let novoHaver =
-prompt("Digite 💲 (Recebido) ou 📄 (Pendente)",
-entrega.haver || "📄");
+let novaData = prompt("Editar data (DD/MM/AAAA):", entrega.data);
+if(novaData == null) return;
 
+let novoHaver = prompt("Digite 💲 (Recebido) ou 📄 (Pendente)", entrega.haver || "📄");
 if(novoHaver == null) return;
 
 entrega.litros = Number(novoLitro);
+entrega.data = novaData;
 
 entrega.valorTotal = Number(novoLitro) * banco.valorLitro;
 
@@ -919,8 +919,44 @@ ${cliente.nome}
 
 }
 
+
+// ======================
+// DASHBOARD E PÁGINAS
+// ======================
+const titulosPaginas={dashboard:"Dashboard",clientes:"Clientes",entregas:"Fazer Entregas",relatorios:"Relatórios das Entregas",devedores:"Devedores","quem-somos":"Quem somos?"};
+function mostrarPagina(nome){
+ document.querySelectorAll(".pagina").forEach(p=>p.classList.remove("ativa"));
+ document.getElementById(nome).classList.add("ativa");
+ document.getElementById("tituloPagina").textContent=titulosPaginas[nome]||nome;
+ if(nome==="relatorios") gerarRelatorio();
+ if(nome==="devedores") atualizarPendenciasMes();
+ document.querySelector(".sidebar").classList.remove("aberta");
+}
+function atualizarDashboard(){
+ const el=id=>document.getElementById(id);
+ if(!el("dashClientes"))return;
+ let litros=0,divida=0;
+ banco.entregas.forEach(e=>{litros+=Number(e.litros)||0;divida+=(Number(e.valorTotal)||0)-(Number(e.valorPago)||0)});
+ el("dashClientes").textContent=banco.clientes.length; el("dashEntregas").textContent=banco.entregas.length;
+ el("dashLitros").textContent=litros+"L"; el("dashDivida").textContent="R$ "+divida.toFixed(2);
+}
+function gerarRelatorio(){
+ const alvo=document.getElementById("resultadoRelatorio"); if(!alvo)return;
+ const valor=document.getElementById("dataRelatorio").value;
+ let data=valor?new Date(valor+"T12:00:00").toLocaleDateString("pt-BR"):new Date().toLocaleDateString("pt-BR");
+ const itens=banco.entregas.filter(e=>e.data===data); let litros=0,total=0,pago=0;
+ itens.forEach(e=>{litros+=Number(e.litros)||0;total+=Number(e.valorTotal)||0;pago+=Number(e.valorPago)||0});
+ let html=`<h3>📅 ${data}</h3>`;
+ if(!itens.length){alvo.innerHTML=html+"<p>Nenhuma entrega nesta data.</p>";return;}
+ html+=`<div class="tableWrap"><table><tr><th>Cliente</th><th>Litros</th><th>Total</th><th>Pago</th><th>Fiado</th></tr>`;
+ itens.forEach(e=>{let fiado=(Number(e.valorTotal)||0)-(Number(e.valorPago)||0);html+=`<tr><td>${e.cliente}</td><td>${e.litros}L</td><td>R$ ${(Number(e.valorTotal)||0).toFixed(2)}</td><td>R$ ${(Number(e.valorPago)||0).toFixed(2)}</td><td>R$ ${fiado.toFixed(2)}</td></tr>`});
+ html+=`</table></div><div class="totais"><div>🥛 ${litros}L</div><div>💰 Recebido: R$ ${pago.toFixed(2)}</div><div>📄 Em aberto: R$ ${(total-pago).toFixed(2)}</div></div>`; alvo.innerHTML=html;
+}
+
 // ======================
 // INICIAR
 // ======================
 
+const _atualizarTabela=atualizarTabela; atualizarTabela=function(){_atualizarTabela();atualizarDashboard();};
+const _atualizarClientes=atualizarClientes; atualizarClientes=function(){_atualizarClientes();atualizarDashboard();};
 carregarBanco();
